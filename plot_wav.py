@@ -4,6 +4,7 @@ import numpy as np
 from scipy.io import wavfile
 import sys
 from scipy import signal
+from scipy.fft import fft
 import argparse
 
 import struct
@@ -108,6 +109,51 @@ def analyze_pred_vs_actual(args):
 
     # Reset the axis
     plt.axis([0,Time3[-1],min(signal2),max(signal2)])
+
+    # Plot cross correlation + convolution
+    correlation = signal.correlate(signal1, signal2)
+    fig, (ax_orig, ax_pred, ax_corr) = plt.subplots(3, 1)
+    ax_orig.plot(Time, signal1)
+    ax_orig.set_title('Processed signal')
+    ax_pred.plot(Time2, signal2)
+    ax_pred.set_title('Predicted signal')
+    ax_corr.plot(correlation)
+    ax_corr.set_title('Cross-correlation')
+    ax_orig.margins(0, 0.1)
+    ax_pred.margins(0, 0.1)
+    ax_corr.margins(0, 0.1)
+    fig.tight_layout()
+    fig.show()
+    plt.savefig(model_name + '_correlation.png', bbox_inches='tight')
+
+    # Plot FFT
+    signal1_fft = fft(signal1)
+    signal2_fft = fft(signal2)
+    fig, (ax_orig, ax_pred, ax_merged) = plt.subplots(3, sharex=True, figsize=(13, 8))
+    fft_valid_len1 = int(len(signal1_fft) / 2)
+    ax_orig.plot(Time[:fft_valid_len1-1], abs(signal1_fft[:fft_valid_len1-1]), label=output_wav, color='red')
+    ax_orig.set_title('Processed signal')
+    fft_valid_len2 = int(len(signal2_fft)/2)
+    ax_pred.plot(Time2[:fft_valid_len1-1], abs(signal2_fft[:fft_valid_len2-1]), label=pred_wav, color='green')
+    ax_pred.set_title('Predicted signal')
+    ax_merged.plot(Time[:fft_valid_len1-1], abs(signal1_fft[:fft_valid_len1-1]), label='processed', color='red')
+    ax_merged.plot(Time2[:fft_valid_len1-1], abs(signal2_fft[:fft_valid_len2-1]), label='predicted', color='green')
+    ax_merged.legend(loc='upper right')
+    ax_merged.set_xlabel("Time (s)")
+    ax_orig.set_ylabel("Frequency")
+    ax_pred.set_ylabel("Frequency")
+    ax_merged.set_ylabel("Frequency")
+    ax_merged.set_title("Wav File Comparison")
+    ax_orig.grid('on')
+    ax_pred.grid('on')
+    ax_merged.grid('on')
+    ax_orig.margins(0, 0.1)
+    ax_pred.margins(0, 0.1)
+    ax_merged.margins(0, 0.1)
+    fig.tight_layout()
+    fig.show()
+    plt.savefig(model_name + '_fft.png', bbox_inches='tight')
+
 
     # Plot spectrogram difference
     plt.figure(figsize=(12, 8))
